@@ -12,6 +12,7 @@ Development validation performed on 2026-10-11 on Windows with Node 24.14.1.
 - Browser rejection of an IP-literal asset before any target request.
 - Tool search, capability dialog, severity filtering, desktop layout, and 390-pixel mobile layout/navigation; no document-level horizontal overflow observed.
 - Real workspace and synthetic demonstration remain separate.
+- Browser validation of the new kernel workflow against a separate test database: enrollment, permit issuance/download, signed fixture upload, 31-event detail view, pagination, sensor revocation and disabled permit controls. Synthetic fixtures were used for browser testing; the Linux runner supplied the real-kernel proof below. No browser console errors were observed. The kernel page fits a 390-pixel mobile viewport without document-level horizontal overflow.
 
 ## Verification boundaries
 
@@ -31,5 +32,7 @@ The Dockerfile, actual Internet proof/assessment flow, and direct HTTPS reverse-
 - The smoke test uses an isolated in-memory database and an ephemeral sensor key, not user targets or production credentials.
 
 This verifies a bounded prototype on one kernel, not production scalability, comprehensive threat detection, or compatibility with every Linux environment.
+
+[Run 38160082971](https://github.com/r4venrudy/rudy-central/actions/runs/38160082971) also passed for the integrated UI/API and agent packaging at commit `f649f0d`. It includes all 33 Node tests on Ubuntu and Windows, the actual kernel test, and the downloadable `rudy-agent-linux-x86_64` artifact.
 
 GitHub Actions is configured for Ubuntu and Windows; its run status is authoritative for remote CI. Check the repository Actions tab for the commit you intend to deploy.

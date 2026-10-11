@@ -62,8 +62,12 @@ function save(name: string, value: unknown) {
 }
 const label = (value: string) => value.replaceAll('_', ' ');
 const at = (value: number) => new Date(value).toLocaleString();
-const sampleSensor = {
+const sampleSensor: KernelSensor = {
+  schema: 'rudy.sensor-enrollment.v1',
   id: 'demo-sensor',
+  createdAt: new Date().toISOString(),
+  bootId: '00000000-0000-4000-8000-000000000000',
+  architecture: 'x86_64',
   name: 'Atlas · application host',
   hostname: 'atlas.example.test',
   uid: 1000,
@@ -72,7 +76,7 @@ const sampleSensor = {
   kernel: '6.8.0 · illustrative',
   hostId: 'a'.repeat(64),
   publicKey: 'b'.repeat(64),
-} as KernelSensor;
+};
 const sampleEvents = Array.from({ length: 24 }, (_, i) => ({
   timestampNs: String(17000000000n + BigInt(i) * 850000000n),
   cgroupId: '10488',
@@ -83,15 +87,27 @@ const sampleEvents = Array.from({ length: 24 }, (_, i) => ({
     'process_exec' | 'connect_attempt' | 'process_exit',
   comm: ['node', 'curl', 'worker'][Math.floor(i / 3) % 3],
 }));
-const sampleCapture = {
+const sampleCapture: KernelCapture = {
   schema: 'rudy.kernel-capture.v1',
+  agentVersion: '0.2.0',
+  permit: { payload: 'illustrative', signature: 'illustrative' },
+  startedAt: Date.now() - 3600000,
+  finishedAt: Date.now() - 3570000,
+  hooks: ['sched/sched_process_exec', 'sched/sched_process_exit', 'syscalls/sys_enter_connect'],
+  stopReason: 'duration_elapsed',
   events: sampleEvents,
   readerUid: 65534,
   noNewPrivileges: true,
   programSha256: 'c'.repeat(64),
   counters: { seen: 24, emitted: 24, ringDropped: 0, budgetDropped: 0, decodeErrors: 0 },
-  host: { kernel: '6.8.0 · illustrative' },
-} as KernelCapture;
+  host: {
+    kernel: '6.8.0 · illustrative',
+    hostId: sampleSensor.hostId,
+    bootId: sampleSensor.bootId,
+    hostname: sampleSensor.hostname,
+    architecture: 'x86_64',
+  },
+};
 const sampleRecord: KernelCaptureRecord = {
   id: 'demo-capture',
   createdAt: new Date().toISOString(),
@@ -159,6 +175,12 @@ export default function KernelPanel({
       returnFocus.current?.focus();
     }
   }, [dialog]);
+  useEffect(() => {
+    if (!demo && scope !== 'all') {
+      setSelected((current) => (current?.record.engagementId === scope ? current : null));
+      setPage(0);
+    }
+  }, [scope, demo]);
   const open = (type: NonNullable<typeof dialog>['type'], sensor?: KernelSensor) => {
     if (demo) {
       onConnect();
@@ -275,9 +297,12 @@ export default function KernelPanel({
         <div className="kernel-message">
           <Cpu size={17} />
           <p>
-            Your workbench is running on {state?.engine.localPlatform || 'this computer'}. Capture
-            events with the Linux agent on your authorized host, then import the signed artifact
-            here.
+            Your workbench is running on{' '}
+            {state?.engine.localPlatform === 'win32'
+              ? 'Windows'
+              : state?.engine.localPlatform || 'this computer'}
+            . Capture events with the Linux agent on your authorized host, then import the signed
+            artifact here.
           </p>
         </div>
       )}
@@ -519,6 +544,14 @@ export default function KernelPanel({
                 </button>
               </div>
               <div className="kernel-provenance">
+                <dl className="kernel-counter-detail">
+                  {Object.entries(selected.capture.counters).map(([name, value]) => (
+                    <div key={name}>
+                      <dt>{name.replace(/([A-Z])/g, ' $1').toLowerCase()}</dt>
+                      <dd>{value.toLocaleString()}</dd>
+                    </div>
+                  ))}
+                </dl>
                 <span>Embedded eBPF object / SHA-256</span>
                 <code>{selected.capture.programSha256}</code>
                 <small>
@@ -548,6 +581,16 @@ export default function KernelPanel({
       <dialog
         ref={modalRef}
         className="kernel-dialog"
+        aria-label={
+          dialog
+            ? {
+                enroll: 'Enroll a Linux host',
+                permit: 'Authorize kernel capture',
+                import: 'Import kernel capture',
+                revoke: 'Revoke sensor',
+              }[dialog.type]
+            : 'Kernel action'
+        }
         onCancel={(e) => {
           e.preventDefault();
           if (!busy) setDialog(null);

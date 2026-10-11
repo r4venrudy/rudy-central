@@ -295,6 +295,24 @@
   background: #f7f9f7;
   border-top: 1px solid var(--line);
 }
+.kernel-counter-detail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  margin: 0 0 20px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+.kernel-counter-detail dt {
+  color: #657868;
+  font-size: 9px;
+  text-transform: capitalize;
+}
+.kernel-counter-detail dd {
+  margin: 7px 0 0;
+  font-size: 17px;
+  color: #2e4f39;
+}
 .kernel-provenance span {
   font-size: 9px;
   text-transform: uppercase;

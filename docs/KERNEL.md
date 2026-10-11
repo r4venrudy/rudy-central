@@ -21,6 +21,8 @@ cargo build --locked --release --manifest-path native/Cargo.toml --features kern
 
 Use Rust stable from its official distribution. This package currently declares Rust 1.85 as its minimum; validation used 1.99.0. Building from Cargo.lock pins dependencies, not the whole OS/toolchain. The executable embeds the eBPF object and dynamically depends on the system's libelf/zlib/libc. GitHub Actions also packages the tested executable, checksum, and validation report as **rudy-agent-linux-x86_64** under each successful run. Artifact checksums detect accidental change; this is not an independently signed release distribution.
 
+When using the downloaded Actions ZIP, extract it on Linux, run `sha256sum -c SHA256SUMS`, then `chmod +x rudy-agent` (ZIP artifact downloads do not preserve executable mode). Read the validation report shipped with that exact build.
+
 ## Enroll and capture
 
 1. Create a private working directory on the authorized Linux host. Keep key files and output out of shared directories. Run enrollment **without sudo**:
