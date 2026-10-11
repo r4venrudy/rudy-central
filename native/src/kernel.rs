@@ -64,7 +64,7 @@ pub fn capture(
         unsafe { libc::geteuid() } == 0,
         "Capture requires sudo and will drop root after attach"
     );
-    let mut object = ObjectBuilder::default()
+    let object = ObjectBuilder::default()
         .open_memory(OBJECT)?
         .load()
         .context("Kernel verifier rejected the embedded sensor or BPF permission is unavailable")?;
@@ -82,7 +82,7 @@ pub fn capture(
     // Keep every link alive until capture ends. An error unwinds and detaches all
     // previously attached probes. No map/link is pinned into bpffs.
     let mut links = Vec::new();
-    for mut program in object.progs_mut() {
+    for program in object.progs_mut() {
         links.push(
             program
                 .attach()
