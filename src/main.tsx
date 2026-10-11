@@ -42,12 +42,14 @@ import {
 } from 'lucide-react';
 import type { Asset, Control, Engagement, Evidence, Finding, Run, State, Tool } from './types';
 import './styles.css';
+import KernelPanel from './KernelPanel';
 
 const nav = [
   { label: 'Overview', icon: Gauge },
   { label: 'Engagements', icon: FolderOpen },
   { label: 'Asset inventory', icon: Globe2 },
   { label: 'Assessments', icon: Activity },
+  { label: 'Kernel telemetry', icon: Layers3 },
   { label: 'Findings', icon: TriangleAlert },
   { label: 'Tool library', icon: Box },
   { label: 'Evidence', icon: Database },
@@ -311,6 +313,10 @@ function App() {
     'Engine & policy': [
       'Deliberate limits. Clear boundaries.',
       'Inspect the execution policy and the local sensor architecture.',
+    ],
+    'Kernel telemetry': [
+      'Kernel evidence. Explicit authority.',
+      'Observe authorized Linux hosts with the native Rust and eBPF sensor.',
     ],
   };
   function FindingsTable({ compact = false }: { compact?: boolean }) {
@@ -965,7 +971,9 @@ function App() {
                           ? requireWorkspace('new-run')
                           : n.id === 'evidence-import'
                             ? requireWorkspace('import')
-                            : navigate('Engine & policy')
+                            : navigate(
+                                n.id === 'kernel-capture' ? 'Kernel telemetry' : 'Engine & policy',
+                              )
                       }
                     >
                       {n.id === 'web-baseline'
@@ -1215,6 +1223,16 @@ function App() {
               )}
             </div>
           )}
+          {page === 'Kernel telemetry' && (
+            <KernelPanel
+              demo={data.demo}
+              role={data.role}
+              engagements={data.engagements}
+              scope={engagement}
+              onConnect={() => open('connect')}
+              onChanged={async () => setData(await api<State>('/api/state'))}
+            />
+          )}
           {page === 'Engine & policy' && (
             <>
               <div className="engine-grid">
@@ -1255,24 +1273,25 @@ function App() {
                     Explicit privilege.
                   </h2>
                   <p>
-                    The included unprivileged collector reads Linux posture and emits an offline
-                    JSON artifact. Import it to create review findings.
+                    A Rust agent loads three fixed eBPF tracepoints for process execution, exit, and
+                    connection attempts. The reader drops root after attaching the probes.
                   </p>
-                  <code>npm run sensor -- --out snapshot.json</code>
+                  <code>rudy-agent doctor</code>
                   <p>
-                    An optional eBPF tracepoint example counts process executions without collecting
-                    arguments. It is source only and has not been built or tested on this Windows
-                    host.
+                    Host-bound Ed25519 permits enforce one UID, a time window, and an event budget.
+                    Signed offline captures are verified before entering the evidence vault.
                   </p>
-                  <Badge value="Linux validation pending" />
+                  <button onClick={() => navigate('Kernel telemetry')}>
+                    Open kernel telemetry <ArrowRight size={15} />
+                  </button>
                 </section>
               </div>
               <div className="note-panel">
                 <TriangleAlert size={18} />
                 <p>
                   This is a single-workspace release. Multi-tenant isolation, federated sign-in,
-                  distributed workers, licensed tool connectors, and a packaged kernel sensor
-                  require additional engineering and validation.
+                  distributed workers, licensed tool execution connectors, and continuous remote
+                  sensors require additional engineering and validation.
                 </p>
               </div>
             </>
@@ -1282,7 +1301,7 @@ function App() {
               RUDY CENTRAL <b>/</b> Security starts with authorization.
             </span>
             <span>
-              v0.1.0 <i /> {data.demo ? 'Demonstration' : 'Local workspace'}
+              v0.2.0 <i /> {data.demo ? 'Demonstration' : 'Local workspace'}
             </span>
           </footer>
         </main>

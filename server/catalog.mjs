@@ -202,6 +202,14 @@ export const catalog = groups.flatMap(([domain, , , entries]) =>
 );
 export const nativeChecks = [
   {
+    id: 'kernel-capture',
+    name: 'Linux kernel telemetry',
+    description:
+      'Rust + eBPF process and connection-attempt metadata, host-bound permits, signed offline evidence.',
+    requests: 0,
+    status: 'Linux agent',
+  },
+  {
     id: 'web-baseline',
     name: 'Web security baseline',
     description: 'One HTTPS GET: response headers, cookie attributes, and negotiated TLS metadata.',

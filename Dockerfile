@@ -15,4 +15,4 @@ COPY --from=build --chown=node:node /app/server ./server
 COPY --from=build --chown=node:node /app/sensors ./sensors
 USER node
 EXPOSE 4173
-CMD ["node", "server/index.mjs"]
+CMD ["node", "server/index.mts"]

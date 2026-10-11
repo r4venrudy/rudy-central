@@ -2,6 +2,8 @@
 
 All imports require an engagement and an operator session. No imported file can execute a tool. Imports are limited to 4 MB of source text and 500 normalized findings; the HTTP envelope limit is 5 MB. The server deduplicates exact artifact hashes within an engagement. It does not yet deduplicate equivalent findings from different exports.
 
+Kernel captures use a separate **Kernel telemetry → Import capture** flow, a registered sensor, and a issued permit. They are bounded to 10,000 events and a 4-million-character signed payload. Both signatures, scope and counters are validated. The persisted artifact preserves the exact signed payload/signature strings; outer JSON whitespace is normalized. Its evidence digest covers that persisted envelope. Kernel telemetry stays separate from vulnerability findings. See [kernel protocol and privacy](KERNEL.md).
+
 | Format            | Supported subset                                                                                                                                   |
 | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | SARIF             | Version 2.1.0, runs/results, driver/rules, rule security severity, message and first physical location                                             |

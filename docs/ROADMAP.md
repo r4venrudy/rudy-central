@@ -1,10 +1,14 @@
 # Full-platform release plan
 
-The owner's requested scope is larger than v0.1. This file is a delivery backlog, not a claim that unfinished capabilities exist.
+The owner's requested scope is larger than v0.2. This file separates delivered capabilities from the remaining platform backlog.
 
 ## Delivered: authorized workbench
 
 Responsive UI, local persistence, engagements, exact-origin proof, signed scope, bounded web baseline, evidence import, triage, HTML/JSON reports, controls, audit chain, full named-tool registry, and an offline Linux posture collector.
+
+## Delivered in 0.2: Rust and Linux eBPF
+
+Rust CLI and core policy, eight read-only Linux posture checks, embedded helper-based eBPF probes, bounded kernel producer, privilege-dropped userspace reader, host enrollment, Ed25519 authorization and evidence, local/server replay checks, revocation, metadata event explorer, Linux load/capture/API smoke test, and packaged CI executable. The critical API/policy/persistence modules now use strict TypeScript. The first three probes do not require CO-RE relocations; no arbitrary kernel structures are read.
 
 ## Next: validated Linux distribution
 
@@ -25,14 +29,15 @@ Acceptance: supported-platform CI, reproducible package, authenticated UI tests,
 
 Acceptance for each adapter: declared license, version pin, exact authorization mechanism, sandbox/egress boundary, cancellation, result schema, golden fixtures, negative tests, and truthful UI availability.
 
-## Next: kernel observability sensor
+## Next: broader kernel validation and continuous telemetry
 
-- Linux eBPF CO-RE sensor with narrow, documented telemetry; no stealth, exploitation, or interference with defenses.
-- Separate explicit privileged installation, supported kernel matrix, signed artifacts, measurable overhead, bounded buffers and event rates.
-- Authenticated local transport, host enrollment/revocation, event schema, privacy review, and uninstall behavior.
+- Expand the Linux/kernel/architecture compatibility matrix, crash tests, overload tests, and measured overhead/soak testing.
+- Signed release distribution, reproducible toolchain packaging, key rotation, explicit upgrades and rollback.
+- Authenticated continuous transport and online revocation; the current artifact workflow is offline and bounded.
+- Independent review of privileged startup and host identity; remote attestation if the product later needs that stronger guarantee.
 - Kernel lockdown, BTF availability, capability support, and degraded-mode testing on actual Linux hosts.
 
-Acceptance: independently reviewed sensor, repeatable Linux tests, crash/overload exercises, least-privilege deployment, signed releases, and verified uninstall. The included bpftrace counter is only a minimal observability example.
+Acceptance: independent review, repeatable multi-kernel tests, crash/overload exercises, documented operational limits, signed releases, and verified lifecycle behavior. Current real CI validation covers one Linux kernel and deliberately exercises local process and loopback traffic only.
 
 ## Later: professional deployment
 

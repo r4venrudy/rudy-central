@@ -2,7 +2,7 @@
 
 ## Preferred first deployment: loopback + SSH
 
-Install Node 24.14 or later on a supported Linux distribution, clone the private repository using your own GitHub access, then `npm ci && npm run build && npm test`. Start with `npm start` under an unprivileged dedicated account. This application does not require sudo or a kernel driver.
+Install Node 24.14 or later on a supported Linux distribution, clone the private repository using your own GitHub access, then `npm ci && npm run build && npm test`. Start with `npm start` under an unprivileged dedicated account. The browser/API never requires sudo. The separate Rust kernel agent is built and invoked according to [KERNEL.md](KERNEL.md); do not run the web service as root.
 
 Bind to `127.0.0.1:4173` and forward that port with SSH when accessing it from Windows. Avoid exposing an unauthenticated HTTP transport to the network.
 
@@ -23,12 +23,12 @@ Preserve the original public Host header. The origin and host must match `RUDY_P
 For a container that must bind internally to `0.0.0.0`, set `RUDY_ALLOW_REMOTE=1`, a real HTTPS `RUDY_PUBLIC_ORIGIN`, and `RUDY_SECURE_COOKIE=1`. Place it on a private container network behind the HTTPS proxy. Do not publish its raw HTTP port to untrusted clients. The included Dockerfile is an example and was not executed on the Windows development host.
 
 ```sh
-docker build -t rudy-central:0.1.0 .
+docker build -t rudy-central:0.2.0 .
 ```
 
 ## Persistent state
 
-`.data/` contains the database, workspace role key, audit key, and permit key. These are excluded from Git and from the Docker build context. Use an encrypted volume and restrict OS access. Keep backups of the database **and the matching cryptographic keys**. Stop the application or use a proper SQLite online backup approach; do not casually copy only the main database file while WAL writes are active.
+`.data/` contains the database, workspace role key, audit key, web permit key, and `kernel-authority.pem` Ed25519 signing key. These are excluded from Git and from the Docker build context. Use an encrypted volume and restrict OS access. Keep backups of the database **and the matching cryptographic keys**. Stop the application or use a proper SQLite online backup approach; do not casually copy only the main database file while WAL writes are active. Replacing the kernel authority breaks verification of previously issued permits; preserve it for existing evidence. Do not replace it casually to rotate a browser session.
 
 Role keys can be supplied as `RUDY_ADMIN_KEY` and optional `RUDY_VIEWER_KEY` (each at least 32 random characters and distinct). If an environment key is used, it overrides the generated `admin-key` file. Never put a key in a browser URL, shell history, source file, screenshot, or issue. Change the configured key and restart the service to invalidate all sessions. Restarts also invalidate in-memory sessions automatically. Treat suspected key compromise as a workspace security incident.
 

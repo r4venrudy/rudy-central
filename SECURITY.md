@@ -14,7 +14,7 @@ Rudy Central is an authorized-assessment workbench. Scope enforcement is a produ
 
 An operator records an authorization assertion and an exact HTTPS DNS origin. A cryptographically random challenge is bound to the asset ID. Pending challenges expire after 30 minutes. Successful DNS TXT or HTTPS proof produces an HMAC-signed permit for that asset, origin, engagement, capability, and a 24-hour expiry. The only runnable capability is `web-baseline`.
 
-The engine verifies the permit and rechecks the proof before each run, rechecks scope before the baseline request and before saving evidence, and aborts active requests on revocation. Revoked authorizations cannot be reactivated. A verification in flight cannot undo a concurrent revocation. Removing a proof prevents later assessments, subject to DNS caching.
+The web engine verifies the permit and rechecks the proof before each run, rechecks scope before the baseline request and before saving evidence, and aborts active requests on revocation. Revoked authorizations cannot be reactivated. A verification in flight cannot undo a concurrent revocation. Removing a proof prevents later assessments, subject to DNS caching. Kernel capture has a separate host-bound Ed25519 protocol described below.
 
 Ownership of DNS or a web origin does not prove authority over a hosting provider, shared IP, cloud account, related subdomains, or adjacent network. The release does not infer any of that scope. Written authorization remains an operator responsibility. A malicious administrator can patch these checks; a source-available local application cannot prevent that.
 
@@ -44,7 +44,17 @@ Each event includes the previous digest and an HMAC. Startup verifies the chain.
 
 This release is single-workspace. It has no tenant boundary, federated identity, individual user accountability, MFA, encrypted database, outbound firewall worker sandbox, or distributed execution service. Operator/viewer are shared role keys. Do not market it as a production multi-tenant platform.
 
-Kernel sensor source and container/service examples need target-platform validation. A future privileged sensor must use the narrowest capabilities, signed builds, authenticated local IPC, bounded events, an explicit install/uninstall path, and independent security review. Rootkits, stealth, disabling defenses, persistence mechanisms, and arbitrary remote execution are outside the product's implemented capabilities.
+The kernel sensor is validated on one Linux x86_64 CI kernel, not a broad production compatibility matrix. Container/service examples still require deployment validation. Rootkits, stealth, disabling defenses, persistence mechanisms, and arbitrary remote execution are outside the product's implemented capabilities.
+
+## Kernel collection boundary
+
+The separately invoked Rust agent loads three fixed eBPF tracepoints. A workspace Ed25519 permit binds host ID, boot ID, sensor key, one real UID, a maximum 15-minute authorization window, at most 300 seconds of observation and at most 10,000 candidate events. The agent uses a separately trusted authority public key; it does not trust a key inside a submitted permit. A local exclusive journal prevents accidental permit replay. A host owner can remove that journal, so the server independently enforces one accepted artifact per issued permit.
+
+The eBPF producer filters UID, excludes the agent's thread group, enforces a monotonic deadline and event budget, and writes to a bounded one-MiB ring buffer. Counters expose ring loss, budget suppression and decode failure. Rust loads an embedded object only, attaches all required hooks, removes supplementary groups, changes UID/GID to 65534 and sets no_new_privs. The process retains only already opened handles needed for this workflow, but does not claim a complete seccomp or filesystem sandbox. No host settings or defenses are disabled to make capture succeed.
+
+Capture artifacts are signed by the enrolled sensor key. The API checks both signatures, the original issued permit, host/boot/key/UID, time window, exact schema, counters and replay state before atomically persisting evidence. Raw kernel events do not automatically become vulnerability findings. They include process names and IDs and can still be sensitive. Only approved users should access evidence.
+
+Revocation blocks future permits and imports immediately. It cannot interrupt a disconnected agent holding an existing permit; that agent's kernel deadline remains the stop mechanism. Host signatures and reported object hashes do not attest an uncompromised kernel or binary. An administrator with the host/key can forge observations, modify source, change clocks or replace the trust anchor. Kernel sensor source, binary dependencies, supported environments and limitations are documented in [KERNEL.md](docs/KERNEL.md).
 
 ## Reporting defects
 

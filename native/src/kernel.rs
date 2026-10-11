@@ -68,6 +68,10 @@ pub fn capture(
         .open_memory(OBJECT)?
         .load()
         .context("Kernel verifier rejected the embedded sensor or BPF permission is unavailable")?;
+    ensure!(
+        now_ms().saturating_add(u64::from(seconds) * 1000) <= permit.expires_at,
+        "Permit lifetime was exhausted during kernel initialization"
+    );
     let mut policy = Vec::with_capacity(24);
     policy.extend_from_slice(&(monotonic_ns()? + u64::from(seconds) * 1_000_000_000).to_le_bytes());
     policy.extend_from_slice(&permit.uid.to_le_bytes());

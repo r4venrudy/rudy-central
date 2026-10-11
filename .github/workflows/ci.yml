@@ -41,3 +41,17 @@ jobs:
       - run: npm ci
       - name: Real kernel load, privilege drop, event limits and signed API round trip
         run: node scripts/kernel-smoke.mts
+      - name: Package the tested Linux agent
+        run: |
+          mkdir -p work/linux-package
+          cp native/target/release/rudy-agent work/linux-package/
+          cp docs/KERNEL.md work/linux-package/
+          cp work/kernel-validation.json work/linux-package/
+          cd work/linux-package
+          sha256sum rudy-agent > SHA256SUMS
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: rudy-agent-linux-x86_64
+          path: work/linux-package/
+          retention-days: 30
+          if-no-files-found: error
