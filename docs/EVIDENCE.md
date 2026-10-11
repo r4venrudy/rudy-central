@@ -1,0 +1,38 @@
+# Evidence imports
+
+All imports require an engagement and an operator session. No imported file can execute a tool. Imports are limited to 4 MB of source text and 500 normalized findings; the HTTP envelope limit is 5 MB. The server deduplicates exact artifact hashes within an engagement. It does not yet deduplicate equivalent findings from different exports.
+
+| Format            | Supported subset                                                                                                                                   |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| SARIF             | Version 2.1.0, runs/results, driver/rules, rule security severity, message and first physical location                                             |
+| Semgrep JSON      | `results`, check ID, path, start/end, message, severity, optional fix                                                                              |
+| Nuclei            | JSON object/array or JSONL; template ID, info, matched location, matcher metadata; request/response bodies are not copied into normalized findings |
+| Trivy JSON        | `Results[].Vulnerabilities` and `Misconfigurations`; installed/fixed versions                                                                      |
+| Prowler OCSF JSON | Array of `FAIL` records; finding info, severity, resource/account ID, remediation description                                                      |
+| Normalized JSON   | Array, or `{ "findings": [...] }`; each finding requires string title and severity                                                                 |
+| Linux snapshot    | `rudy.linux-snapshot.v1`; checks marked `review` become findings                                                                                   |
+
+Parsers accept documented subsets, not every schema variant or proprietary export. A product's SARIF adapter is usable only if that installed edition/version exports compatible SARIF, directly or through a trusted offline conversion. No vendor API is contacted.
+
+## Normalized finding
+
+```json
+{
+  "findings": [
+    {
+      "title": "Observed configuration issue",
+      "severity": "medium",
+      "asset": "https://your-authorized-origin.example",
+      "source": "Authorized manual review",
+      "category": "Web configuration",
+      "description": "What was observed, and the practical limits of that observation.",
+      "evidence": "Reproduction details and evidence reference, without credentials.",
+      "remediation": "Specific change and how to verify it."
+    }
+  ]
+}
+```
+
+Severity normalization is a triage convenience, not a new CVSS computation. SARIF security-severity scores use standard severity bands where present. Imported confidence is always labeled as requiring validation. Finding statuses are open, in progress, resolved, accepted, or false positive. Owner and notes record the analyst's disposition.
+
+Raw artifacts remain unchanged. They may contain secrets or unrelated personal data, even if normalized fields omit them. Review source exports before import. Evidence exports are downloadable inert files. No malware binaries or packet capture parsers are included.

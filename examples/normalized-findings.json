@@ -1,0 +1,14 @@
+{
+  "findings": [
+    {
+      "title": "Example: security header requires review",
+      "severity": "low",
+      "description": "Illustrative finding for import workflow testing. This does not describe a real asset.",
+      "asset": "https://example.test",
+      "source": "Manual review example",
+      "category": "Web configuration",
+      "evidence": "Synthetic evidence only. Replace with an observation from an authorized assessment.",
+      "remediation": "Review the actual application configuration and document the outcome."
+    }
+  ]
+}

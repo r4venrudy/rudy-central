@@ -1,0 +1,10 @@
+#!/usr/bin/env bpftrace
+/* Optional observability example, not a shipped kernel agent.
+ * Tracepoint aggregation only. Never captures command lines, credentials,
+ * filenames, or process contents. Run manually on an authorized Linux host.
+ * Requires bpftrace and privileges suitable for the host BPF policy.
+ * Source has NOT been validated on the Windows development host.
+ */
+BEGIN { printf("Rudy Central: counting process executions for 30 seconds.\n"); }
+tracepoint:sched:sched_process_exec { @executions = count(); }
+interval:s:30 { exit(); }

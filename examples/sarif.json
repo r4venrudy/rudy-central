@@ -1,0 +1,37 @@
+{
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "Example analyzer",
+          "rules": [
+            {
+              "id": "DEMO-001",
+              "shortDescription": { "text": "Synthetic source finding" },
+              "properties": { "security-severity": "4.0" },
+              "help": {
+                "text": "Validate the sample finding against actual source before taking action."
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "DEMO-001",
+          "level": "warning",
+          "message": { "text": "Example only." },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": { "uri": "example.ts" },
+                "region": { "startLine": 4 }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

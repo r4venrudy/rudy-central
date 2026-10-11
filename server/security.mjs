@@ -1,0 +1,280 @@
+import crypto from 'node:crypto';
+import dns from 'node:dns/promises';
+import https from 'node:https';
+import net from 'node:net';
+import ipaddr from 'ipaddr.js';
+
+export class PolicyError extends Error {
+  constructor(message, status = 400) {
+    super(message);
+    this.status = status;
+  }
+}
+export const randomToken = () => crypto.randomBytes(32).toString('base64url');
+export const digest = (value) => crypto.createHash('sha256').update(value).digest('hex');
+export const equal = (a, b) =>
+  typeof a === 'string' &&
+  typeof b === 'string' &&
+  crypto.timingSafeEqual(Buffer.from(digest(a), 'hex'), Buffer.from(digest(b), 'hex'));
+export const sign = (value, key) =>
+  crypto.createHmac('sha256', key).update(JSON.stringify(value)).digest('hex');
+export async function withDeadline(operation, milliseconds, message) {
+  let timer;
+  try {
+    return await Promise.race([
+      operation,
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new PolicyError(message)), milliseconds);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+export function normalizeOrigin(input) {
+  let u;
+  try {
+    u = new URL(input);
+  } catch {
+    throw new PolicyError('Enter a valid HTTPS origin.');
+  }
+  if (
+    u.protocol !== 'https:' ||
+    u.username ||
+    u.password ||
+    u.search ||
+    u.hash ||
+    (u.pathname !== '/' && u.pathname !== '')
+  )
+    throw new PolicyError(
+      'Scope must be an exact HTTPS origin, without credentials, path, query, or fragment.',
+    );
+  if (u.port && u.port !== '443')
+    throw new PolicyError('This release permits HTTPS on port 443 only.');
+  if (
+    net.isIP(u.hostname.replace(/^\[|\]$/g, '')) ||
+    u.hostname.endsWith('.') ||
+    !u.hostname.includes('.') ||
+    u.hostname.length > 253 ||
+    !u.hostname.split('.').every((l) => /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i.test(l))
+  )
+    throw new PolicyError(
+      'A public DNS hostname is required. IP literals, wildcards, and local hosts are outside this release’s scope.',
+    );
+  return u.origin;
+}
+export function isPublicAddress(address) {
+  try {
+    const p = ipaddr.process(address);
+    return p.range() === 'unicast';
+  } catch {
+    return false;
+  }
+}
+export async function resolvePublic(hostname, resolver = dns.lookup) {
+  const addresses = await withDeadline(
+    resolver(hostname, { all: true, verbatim: true }),
+    7000,
+    'DNS resolution timed out.',
+  );
+  if (!addresses.length || addresses.some((a) => !isPublicAddress(a.address)))
+    throw new PolicyError(
+      'Target resolves to a private, reserved, or local address. Request blocked.',
+      403,
+    );
+  return addresses;
+}
+
+// Resolve once, validate every answer, and pin the socket to that answer. Never follow redirects.
+export async function boundedGet(
+  origin,
+  path = '/',
+  { signal, resolver = dns.lookup, maxBytes = 262144 } = {},
+) {
+  const normalized = normalizeOrigin(origin),
+    u = new URL(normalized);
+  if (!path.startsWith('/') || path.startsWith('//'))
+    throw new PolicyError('Invalid request path.');
+  const addresses = await resolvePublic(u.hostname, resolver);
+  if (signal?.aborted) throw new PolicyError('Run cancelled.', 409);
+  const pinned = addresses[0];
+  return new Promise((resolve, reject) => {
+    const req = https.request(
+      {
+        hostname: u.hostname,
+        port: 443,
+        path,
+        method: 'GET',
+        servername: u.hostname,
+        rejectUnauthorized: true,
+        signal,
+        lookup: (_host, opts, cb) =>
+          opts?.all ? cb(null, [pinned]) : cb(null, pinned.address, pinned.family),
+        headers: {
+          'User-Agent': 'RudyCentral/0.1 authorized-assessment',
+          Accept: 'text/plain, text/html;q=0.8',
+          'Accept-Encoding': 'identity',
+        },
+        timeout: 7000,
+        maxHeaderSize: 32768,
+      },
+      (res) => {
+        const chunks = [];
+        let bytes = 0;
+        const socket = res.socket;
+        const cert = socket.getPeerCertificate?.() || {};
+        const tls = {
+          protocol: socket.getProtocol?.(),
+          cipher: socket.getCipher?.()?.name,
+          validTo: cert.valid_to || null,
+          issuer: cert.issuer?.O || null,
+        };
+        res.on('data', (chunk) => {
+          bytes += chunk.length;
+          if (bytes > maxBytes) {
+            req.destroy(new PolicyError('Response exceeds the assessment byte budget.'));
+          } else chunks.push(chunk);
+        });
+        res.on('end', () =>
+          resolve({
+            status: res.statusCode,
+            headers: res.headers,
+            body: Buffer.concat(chunks).toString('utf8'),
+            bytes,
+            ip: pinned.address,
+            tls,
+          }),
+        );
+        res.on('error', reject);
+      },
+    );
+    const deadline = setTimeout(
+      () => req.destroy(new PolicyError('Request exceeded the 10-second wall-clock budget.')),
+      10000,
+    );
+    req.on('timeout', () => req.destroy(new PolicyError('Target request timed out.')));
+    req.on('error', reject);
+    req.on('close', () => clearTimeout(deadline));
+    req.end();
+  });
+}
+
+export function assertPermit(asset, key, now = Date.now()) {
+  if (
+    asset.state !== 'verified' ||
+    !asset.permit ||
+    !equal(asset.signature, sign(asset.permit, key))
+  )
+    throw new PolicyError('No valid signed scope permit. Verify ownership before running.', 403);
+  if (
+    asset.permit.origin !== asset.origin ||
+    asset.permit.assetId !== asset.id ||
+    asset.permit.expiresAt <= now ||
+    !asset.permit.capabilities.includes('web-baseline')
+  )
+    throw new PolicyError('Scope permit is expired or mismatched.', 403);
+}
+export async function checkProof(
+  asset,
+  { get = boundedGet, resolveTxt = dns.resolveTxt, signal } = {},
+) {
+  const expected = `rudy-central-verification=${asset.id}.${asset.challenge}`;
+  if (asset.method === 'dns') {
+    // DNS-only challenge does not send any request to the prospective target.
+    const records = await withDeadline(
+      resolveTxt(`_rudy-central.${new URL(asset.origin).hostname}`),
+      7000,
+      'DNS proof lookup timed out.',
+    );
+    if (!records.some((parts) => equal(parts.join(''), expected)))
+      throw new PolicyError('DNS proof was not found or did not match.', 403);
+  } else {
+    const result = await get(asset.origin, `/.well-known/rudy-central/${asset.id}.txt`, {
+      maxBytes: 4096,
+      signal,
+    });
+    if (result.status !== 200 || !equal(result.body.trim(), expected))
+      throw new PolicyError(
+        'HTTPS proof did not match. Serve the exact token with status 200; redirects are not accepted.',
+        403,
+      );
+  }
+  return true;
+}
+
+export function baselineFindings(response, origin) {
+  const findings = [];
+  const add = (title, severity, description, remediation, evidence) =>
+    findings.push({
+      title,
+      severity,
+      description,
+      remediation,
+      evidence,
+      asset: origin,
+      source: 'Rudy native',
+      category: 'Web configuration',
+      confidence: 'Observed',
+      status: 'open',
+    });
+  const h = response.headers;
+  if (!h['strict-transport-security'])
+    add(
+      'Strict transport security is missing',
+      'medium',
+      'The sampled HTTPS response does not advertise HSTS. This is a configuration observation, not proof of an exploitable attack.',
+      'After validating HTTPS coverage, configure an appropriate Strict-Transport-Security policy.',
+      'strict-transport-security: absent',
+    );
+  if (!h['content-security-policy'])
+    add(
+      'Content security policy is missing',
+      'medium',
+      'The sampled response has no enforcing CSP. Applicability depends on whether this origin serves browser content.',
+      'Design and test a restrictive CSP for browser-facing content.',
+      'content-security-policy: absent',
+    );
+  if (String(h['x-content-type-options'] || '').toLowerCase() !== 'nosniff')
+    add(
+      'Content-type sniffing is not disabled',
+      'low',
+      'The sampled response does not set X-Content-Type-Options to nosniff.',
+      'Return X-Content-Type-Options: nosniff with correct MIME types.',
+      `x-content-type-options: ${h['x-content-type-options'] || 'absent'}`,
+    );
+  if (
+    !h['x-frame-options'] &&
+    !String(h['content-security-policy'] || '')
+      .toLowerCase()
+      .includes('frame-ancestors')
+  )
+    add(
+      'Framing policy is missing',
+      'low',
+      'No frame-ancestors directive or X-Frame-Options header was observed.',
+      'Define a frame-ancestors policy appropriate for allowed embedding.',
+      'No anti-framing response policy observed.',
+    );
+  for (const cookie of h['set-cookie'] || []) {
+    const name = cookie.split('=')[0];
+    for (const flag of ['Secure', 'HttpOnly', 'SameSite'])
+      if (!new RegExp(`;\\s*${flag}(?:[=;]|$)`, 'i').test(cookie))
+        add(
+          `Cookie ${name.slice(0, 60)} lacks ${flag}`,
+          'low',
+          `The sampled Set-Cookie omits ${flag}. Review whether this is a sensitive session cookie before treating it as a vulnerability.`,
+          `Review cookie purpose and configure ${flag} where applicable.`,
+          `Cookie name: ${name.slice(0, 60)}; value redacted.`,
+        );
+  }
+  if (response.tls?.validTo && Date.parse(response.tls.validTo) - Date.now() < 30 * 86400000)
+    add(
+      'TLS certificate expires within 30 days',
+      'low',
+      'The peer certificate observed on this connection is approaching expiration.',
+      'Verify automated renewal and certificate deployment.',
+      `Expiry: ${response.tls.validTo}`,
+    );
+  return findings;
+}

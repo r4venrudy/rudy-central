@@ -1,0 +1,11 @@
+{
+  "results": [
+    {
+      "check_id": "example.parameterized-query",
+      "path": "example.ts",
+      "start": { "line": 10 },
+      "end": { "line": 10 },
+      "extra": { "severity": "WARNING", "message": "Synthetic example: review query construction." }
+    }
+  ]
+}
