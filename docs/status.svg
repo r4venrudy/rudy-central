@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="56" viewBox="0 0 1280 56" role="img" aria-labelledby="title">
+  <title id="title">Version 0.2.0, Rust and C / eBPF, TypeScript and React, early platform</title>
+  <g fill="#101b28" stroke="#243448">
+    <rect x="0.5" y="6" width="190" height="44" rx="6"/>
+    <rect x="206" y="6" width="322" height="44" rx="6"/>
+    <rect x="544" y="6" width="360" height="44" rx="6"/>
+    <rect x="920" y="6" width="359.5" height="44" rx="6"/>
+  </g>
+  <g fill="#55e0b6" font-family="monospace" font-size="20" text-anchor="middle">
+    <text x="95" y="35">v0.2.0</text>
+    <text x="367" y="35">RUST + C / eBPF</text>
+    <text x="724" y="35">TYPESCRIPT / REACT</text>
+    <text x="1100" y="35">EARLY PLATFORM</text>
+  </g>
+</svg>

@@ -1,12 +1,6 @@
 <p align="center"><img src="docs/banner.svg" alt="Rudy Central — Authorized assessment. Kernel visibility. Evidence you can inspect." width="100%"></p>
 
-<p align="center">
-  <a href="https://github.com/r4venrudy/rudy-central/actions/workflows/ci.yml"><img src="https://img.shields.io/badge/CI-UI_%2F_API_%2F_Kernel-55e0b6?style=flat-square&labelColor=101b28" alt="Open UI, API and kernel validation runs"></a>
-  <img src="https://img.shields.io/badge/Version-0.2.0-55e0b6?style=flat-square&labelColor=101b28" alt="Version 0.2.0">
-  <img src="https://img.shields.io/badge/Native-Rust_%2B_C_%2F_eBPF-55e0b6?style=flat-square&labelColor=101b28" alt="Rust and C / eBPF">
-  <img src="https://img.shields.io/badge/Workbench-TypeScript_%2F_React-55e0b6?style=flat-square&labelColor=101b28" alt="TypeScript and React">
-  <img src="https://img.shields.io/badge/Stage-early_platform-55e0b6?style=flat-square&labelColor=101b28" alt="Early platform release">
-</p>
+<p align="center"><img src="docs/status.svg" alt="Version 0.2.0 · Rust and C / eBPF · TypeScript and React · Early platform" width="100%"></p>
 
 <p align="center"><strong>Define the scope. Follow the signals. Keep the evidence.</strong></p>
 <p align="center"><a href="#overview">Overview</a> · <a href="#working-capabilities">Capabilities</a> · <a href="#start-locally">Quick start</a> · <a href="docs/ARCHITECTURE.md">Architecture</a> · <a href="docs/KERNEL.md">Linux sensor</a> · <a href="docs/VALIDATION.md">Validation</a></p>
