@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="420" viewBox="0 0 1280 420" role="img" aria-labelledby="title desc">
+  <title id="title">Rudy Central — the flagship Rudy Systems security workbench</title>
+  <desc id="desc">Authorized assessment, Linux kernel visibility, and evidence review. Rust, C and eBPF, TypeScript, React.</desc>
+  <rect width="1280" height="420" rx="18" fill="#0a1018"/>
+  <path d="M900 0v420M960 0v420M1020 0v420M1080 0v420M1140 0v420M1200 0v420M1260 0v420M880 50h400M880 110h400M880 170h400M880 230h400M880 290h400M880 350h400" stroke="#142333"/>
+  <rect x="52" y="52" width="5" height="24" fill="#55e0b6"/>
+  <text x="72" y="71" fill="#55e0b6" font-family="monospace" font-size="16" letter-spacing="3">RUDY SYSTEMS / FLAGSHIP PLATFORM</text>
+  <text x="48" y="173" fill="#edf4fc" font-family="Arial, sans-serif" font-size="78" font-weight="700" letter-spacing="-2">RUDY CENTRAL</text>
+  <text x="54" y="231" fill="#97acc1" font-family="Arial, sans-serif" font-size="30">Authorized assessment. Kernel visibility.</text>
+  <text x="54" y="276" fill="#97acc1" font-family="Arial, sans-serif" font-size="30">Evidence you can inspect.</text>
+  <path d="M54 327h1172" stroke="#243448"/>
+  <text x="54" y="377" fill="#55e0b6" font-family="monospace" font-size="20">RUST / C + eBPF / TYPESCRIPT / REACT</text>
+  <text x="1226" y="377" text-anchor="end" fill="#97acc1" font-family="monospace" font-size="18">LOCAL-FIRST / v0.2.0</text>
+  <g fill="#101b28" stroke="#243448" stroke-width="2">
+    <rect x="922" y="62" width="290" height="58" rx="8"/>
+    <rect x="922" y="153" width="290" height="58" rx="8"/>
+    <rect x="922" y="244" width="290" height="58" rx="8"/>
+  </g>
+  <g fill="#55e0b6" font-family="monospace" font-size="18" text-anchor="middle">
+    <text x="1067" y="98">01 / VERIFY SCOPE</text>
+    <text x="1067" y="189">02 / CAPTURE SIGNALS</text>
+    <text x="1067" y="280">03 / REVIEW EVIDENCE</text>
+  </g>
+  <path d="M1067 120v33m-5-7 5 7 5-7M1067 211v33m-5-7 5 7 5-7" stroke="#55e0b6" stroke-width="2" fill="none"/>
+</svg>
