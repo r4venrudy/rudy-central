@@ -15,9 +15,26 @@ import {
   checkProof,
   boundedGet,
   baselineFindings,
-} from './security.mjs';
+} from './security.mts';
 import { parseEvidence } from './importers.mjs';
-import { reportHtml } from './reports.mjs';
+import { reportHtml } from './reports.mts';
+import type { ErrorRequestHandler } from 'express';
+import type { Store } from './store.mts';
+import type { Asset, RecordKind, Records } from './models.mts';
+import { generateAuthority, mountKernelRoutes } from './kernel.mts';
+type AppOptions = {
+  store: Store;
+  adminKey: string;
+  viewerKey?: string;
+  port?: number;
+  publicOrigin?: string;
+  secureCookie?: boolean;
+  dist?: string;
+  proof?: typeof checkProof;
+  get?: typeof boundedGet;
+  permitKey?: string;
+  kernelAuthority?: crypto.KeyObject;
+};
 
 const short = z.string().trim().min(1).max(240);
 const id = z.string().uuid();
@@ -32,12 +49,13 @@ export function createApp({
   proof = checkProof,
   get = boundedGet,
   permitKey = adminKey,
-}) {
+  kernelAuthority = generateAuthority(),
+}: AppOptions) {
   const app = express(),
-    sessions = new Map(),
-    rates = new Map(),
-    active = new Map(),
-    verifying = new Set();
+    sessions = new Map<string, { role: 'operator' | 'viewer'; expiresAt: number }>(),
+    rates = new Map<string, { since: number; count: number }>(),
+    active = new Map<string, { controller: AbortController; assetId: string }>(),
+    verifying = new Set<string>();
   app.disable('x-powered-by');
   const trustedOrigins = new Set([
     `http://127.0.0.1:${port}`,
@@ -45,7 +63,7 @@ export function createApp({
     ...(publicOrigin ? [publicOrigin] : []),
   ]);
   const trustedHosts = new Set([...trustedOrigins].map((o) => new URL(o).host));
-  const rate = (bucket, max) => {
+  const rate = (bucket: string, max: number) => {
     const now = Date.now(),
       key = bucket;
     let r = rates.get(key);
@@ -65,7 +83,7 @@ export function createApp({
       'Content-Security-Policy':
         "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
     });
-    if (!trustedHosts.has(req.headers.host))
+    if (!trustedHosts.has(req.headers.host || ''))
       return res.status(403).json({ error: 'Untrusted Host header.' });
     if (req.headers.origin && !trustedOrigins.has(req.headers.origin))
       return res.status(403).json({ error: 'Untrusted request origin.' });
@@ -113,7 +131,7 @@ export function createApp({
     if (!session || session.expiresAt < Date.now())
       return res.status(401).json({ error: 'Connect to your workspace to continue.' });
     req.actor = session.role;
-    req.sessionId = digest(token);
+    req.sessionId = digest(token!);
     if (
       !['GET', 'HEAD'].includes(req.method) &&
       req.actor !== 'operator' &&
@@ -123,17 +141,17 @@ export function createApp({
     rate(`api:${req.sessionId}`, 120);
     next();
   });
-  const mustGet = (kind, value) => {
-    id.parse(value);
-    const row = store.get(kind, value);
+  const mustGet = <K extends RecordKind>(kind: K, value: unknown): Records[K] => {
+    const row = store.get(kind, id.parse(value));
     if (!row) throw new PolicyError(`${kind} not found.`, 404);
     return row;
   };
-  const safeAsset = (asset) => ({
+  const safeAsset = (asset: Asset) => ({
     ...asset,
     signature: undefined,
     permit: asset.permit ? { ...asset.permit } : null,
   });
+  mountKernelRoutes(app, store, kernelAuthority);
   app.delete('/api/session', (req, res) => {
     sessions.delete(req.sessionId);
     res.clearCookie('rudy_session', { path: '/' });
@@ -162,7 +180,7 @@ export function createApp({
         permitHours: 24,
         publicHttpsOnly: true,
         kernel:
-          'Local posture collector available. Optional eBPF example requires Linux validation.',
+          'Rust host agent and three bounded Linux eBPF tracepoints. Enroll a host and issue a signed capture permit in Kernel telemetry.',
       },
     }),
   );
@@ -226,7 +244,7 @@ export function createApp({
       );
     if (asset.state === 'pending' && asset.challengeExpiresAt < Date.now())
       throw new PolicyError('Challenge expired. Revoke and create a new authorization.', 403);
-    if (asset.state === 'verified' && asset.permit?.expiresAt < Date.now())
+    if (asset.state === 'verified' && (asset.permit?.expiresAt ?? 0) < Date.now())
       throw new PolicyError('Authorization expired. Revoke and create a new authorization.', 403);
     verifying.add(asset.id);
     try {
@@ -367,7 +385,11 @@ export function createApp({
           store.put('run', {
             ...run,
             state: cancelled ? 'cancelled' : 'failed',
-            error: cancelled ? 'Run cancelled or scope revoked.' : error.message,
+            error: cancelled
+              ? 'Run cancelled or scope revoked.'
+              : error instanceof Error
+                ? error.message
+                : 'Assessment failed.',
             finishedAt: new Date().toISOString(),
           });
           store.audit('engine', cancelled ? 'run.cancelled' : 'run.failed', run.id);
@@ -379,10 +401,10 @@ export function createApp({
   });
   app.post('/api/runs/:id/cancel', (req, res) => {
     mustGet('run', req.params.id);
-    const entry = active.get(req.params.id);
+    const entry = active.get(id.parse(req.params.id));
     if (!entry) throw new PolicyError('Run is no longer active.', 409);
     entry.controller.abort();
-    store.audit(req.actor, 'run.cancel_requested', req.params.id);
+    store.audit(req.actor, 'run.cancel_requested', id.parse(req.params.id));
     res.json({ ok: true });
   });
   app.post('/api/imports', (req, res) => {
@@ -518,7 +540,7 @@ export function createApp({
   app.use('/api', (_req, res) => res.status(404).json({ error: 'Unknown API route.' }));
   app.use(express.static(dist, { dotfiles: 'deny', index: 'index.html' }));
   app.get('/{*path}', (_req, res) => res.sendFile(path.join(dist, 'index.html')));
-  app.use((error, req, res, _next) => {
+  const errorHandler: ErrorRequestHandler = (error, req, res, _next) => {
     const status = error instanceof z.ZodError ? 400 : error.status || 500;
     res.status(status).json({
       error:
@@ -530,7 +552,8 @@ export function createApp({
             : error.message,
     });
     if (status >= 500) console.error('Request failed:', error.message);
-  });
+  };
+  app.use(errorHandler);
   return {
     app,
     shutdown: () => {

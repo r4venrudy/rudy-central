@@ -1,13 +1,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { Store } from './store.mjs';
-import { createApp } from './app.mjs';
-import { randomToken } from './security.mjs';
+import { Store } from './store.mts';
+import { createApp } from './app.mts';
+import { randomToken } from './security.mts';
+import { loadAuthority } from './kernel.mts';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const data = process.env.RUDY_DATA_DIR || path.join(root, '.data');
 fs.mkdirSync(data, { recursive: true, mode: 0o700 });
-function secret(name, env) {
+function secret(name: string, env?: string) {
   if (env) {
     if (env.length < 32) throw new Error(`${name} must contain at least 32 characters.`);
     return env;
@@ -50,12 +51,13 @@ for (const run of store.list('run'))
       error: 'Service restarted before completion.',
       finishedAt: new Date().toISOString(),
     });
-store.audit('service', 'service.started', 'Rudy Central 0.1.0');
+store.audit('service', 'service.started', 'Rudy Central 0.2.0');
 const runtime = createApp({
   store,
   adminKey,
   viewerKey,
   permitKey,
+  kernelAuthority: loadAuthority(path.join(data, 'kernel-authority.pem')),
   port,
   publicOrigin,
   secureCookie: process.env.RUDY_SECURE_COOKIE === '1',

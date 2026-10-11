@@ -1,6 +1,6 @@
 {
   "name": "rudy-central",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -8,9 +8,9 @@
   },
   "scripts": {
     "dev": "vite --host 127.0.0.1",
-    "server": "node server/index.mjs",
-    "build": "tsc --noEmit && vite build",
-    "start": "node server/index.mjs",
+    "server": "node server/index.mts",
+    "build": "tsc --noEmit && tsc -p tsconfig.server.json && vite build",
+    "start": "node server/index.mts",
     "test": "node --test tests/*.test.mjs",
     "check": "npm run build && npm test",
     "sensor": "node sensors/linux-snapshot.mjs",
@@ -26,6 +26,8 @@
     "zod": "^3.24.0"
   },
   "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.6.5",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.4",

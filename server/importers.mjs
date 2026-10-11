@@ -1,4 +1,4 @@
-import { PolicyError } from './security.mjs';
+import { PolicyError } from './security.mts';
 const severity = (value) =>
   ({
     critical: 'critical',

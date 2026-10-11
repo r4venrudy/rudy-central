@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
-import { Store } from '../server/store.mjs';
-import { createApp } from '../server/app.mjs';
+import { Store } from '../server/store.mts';
+import { createApp } from '../server/app.mts';
 const adminKey = 'a'.repeat(40),
   viewerKey = 'v'.repeat(40);
 async function fixture(t, overrides = {}) {

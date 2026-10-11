@@ -8,10 +8,10 @@ import {
   checkProof,
   sign,
   baselineFindings,
-} from '../server/security.mjs';
+} from '../server/security.mts';
 import { parseEvidence } from '../server/importers.mjs';
-import { reportHtml } from '../server/reports.mjs';
-import { Store } from '../server/store.mjs';
+import { reportHtml } from '../server/reports.mts';
+import { Store } from '../server/store.mts';
 import { catalog, domains } from '../server/catalog.mjs';
 
 test('scope normalization accepts only exact public HTTPS DNS origins', () => {

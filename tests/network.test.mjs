@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import https from 'node:https';
 import { EventEmitter } from 'node:events';
-import { boundedGet, withDeadline } from '../server/security.mjs';
+import { boundedGet, withDeadline } from '../server/security.mts';
 
 test('transport pins its validated IP, keeps hostname TLS, and does not follow redirects', async (t) => {
   let calls = 0;

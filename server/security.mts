@@ -3,27 +3,60 @@ import dns from 'node:dns/promises';
 import https from 'node:https';
 import net from 'node:net';
 import ipaddr from 'ipaddr.js';
+import type { LookupAddress } from 'node:dns';
+import type { IncomingHttpHeaders } from 'node:http';
+import type { TLSSocket } from 'node:tls';
+import type { Asset, FindingInput } from './models.mts';
+export type Resolver = (
+  hostname: string,
+  options: { all: true; verbatim: true },
+) => Promise<LookupAddress[]>;
+export type ResponseSnapshot = {
+  status: number;
+  headers: IncomingHttpHeaders;
+  body: string;
+  bytes: number;
+  ip: string;
+  tls: {
+    protocol?: string | null;
+    cipher?: string;
+    validTo?: string | null;
+    issuer?: string | string[] | null;
+  };
+};
+export type GetOptions = { signal?: AbortSignal; resolver?: Resolver; maxBytes?: number };
+export type BoundedGetter = (
+  origin: string,
+  path?: string,
+  options?: GetOptions,
+) => Promise<ResponseSnapshot>;
 
 export class PolicyError extends Error {
-  constructor(message, status = 400) {
+  status: number;
+  constructor(message: string, status = 400) {
     super(message);
     this.status = status;
   }
 }
 export const randomToken = () => crypto.randomBytes(32).toString('base64url');
-export const digest = (value) => crypto.createHash('sha256').update(value).digest('hex');
-export const equal = (a, b) =>
+export const digest = (value: string | Buffer) =>
+  crypto.createHash('sha256').update(value).digest('hex');
+export const equal = (a: unknown, b: unknown) =>
   typeof a === 'string' &&
   typeof b === 'string' &&
   crypto.timingSafeEqual(Buffer.from(digest(a), 'hex'), Buffer.from(digest(b), 'hex'));
-export const sign = (value, key) =>
+export const sign = (value: unknown, key: string) =>
   crypto.createHmac('sha256', key).update(JSON.stringify(value)).digest('hex');
-export async function withDeadline(operation, milliseconds, message) {
-  let timer;
+export async function withDeadline<T>(
+  operation: Promise<T>,
+  milliseconds: number,
+  message: string,
+): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     return await Promise.race([
       operation,
-      new Promise((_, reject) => {
+      new Promise<never>((_, reject) => {
         timer = setTimeout(() => reject(new PolicyError(message)), milliseconds);
       }),
     ]);
@@ -32,7 +65,7 @@ export async function withDeadline(operation, milliseconds, message) {
   }
 }
 
-export function normalizeOrigin(input) {
+export function normalizeOrigin(input: string) {
   let u;
   try {
     u = new URL(input);
@@ -64,7 +97,7 @@ export function normalizeOrigin(input) {
     );
   return u.origin;
 }
-export function isPublicAddress(address) {
+export function isPublicAddress(address: string) {
   try {
     const p = ipaddr.process(address);
     return p.range() === 'unicast';
@@ -72,7 +105,7 @@ export function isPublicAddress(address) {
     return false;
   }
 }
-export async function resolvePublic(hostname, resolver = dns.lookup) {
+export async function resolvePublic(hostname: string, resolver: Resolver = dns.lookup) {
   const addresses = await withDeadline(
     resolver(hostname, { all: true, verbatim: true }),
     7000,
@@ -88,10 +121,10 @@ export async function resolvePublic(hostname, resolver = dns.lookup) {
 
 // Resolve once, validate every answer, and pin the socket to that answer. Never follow redirects.
 export async function boundedGet(
-  origin,
+  origin: string,
   path = '/',
-  { signal, resolver = dns.lookup, maxBytes = 262144 } = {},
-) {
+  { signal, resolver = dns.lookup, maxBytes = 262144 }: GetOptions = {},
+): Promise<ResponseSnapshot> {
   const normalized = normalizeOrigin(origin),
     u = new URL(normalized);
   if (!path.startsWith('/') || path.startsWith('//'))
@@ -120,9 +153,9 @@ export async function boundedGet(
         maxHeaderSize: 32768,
       },
       (res) => {
-        const chunks = [];
+        const chunks: Buffer[] = [];
         let bytes = 0;
-        const socket = res.socket;
+        const socket = res.socket as TLSSocket;
         const cert = socket.getPeerCertificate?.() || {};
         const tls = {
           protocol: socket.getProtocol?.(),
@@ -138,7 +171,7 @@ export async function boundedGet(
         });
         res.on('end', () =>
           resolve({
-            status: res.statusCode,
+            status: res.statusCode ?? 0,
             headers: res.headers,
             body: Buffer.concat(chunks).toString('utf8'),
             bytes,
@@ -160,7 +193,7 @@ export async function boundedGet(
   });
 }
 
-export function assertPermit(asset, key, now = Date.now()) {
+export function assertPermit(asset: Asset, key: string, now = Date.now()) {
   if (
     asset.state !== 'verified' ||
     !asset.permit ||
@@ -176,8 +209,12 @@ export function assertPermit(asset, key, now = Date.now()) {
     throw new PolicyError('Scope permit is expired or mismatched.', 403);
 }
 export async function checkProof(
-  asset,
-  { get = boundedGet, resolveTxt = dns.resolveTxt, signal } = {},
+  asset: Asset,
+  {
+    get = boundedGet,
+    resolveTxt = dns.resolveTxt,
+    signal,
+  }: { get?: BoundedGetter; resolveTxt?: typeof dns.resolveTxt; signal?: AbortSignal } = {},
 ) {
   const expected = `rudy-central-verification=${asset.id}.${asset.challenge}`;
   if (asset.method === 'dns') {
@@ -203,9 +240,15 @@ export async function checkProof(
   return true;
 }
 
-export function baselineFindings(response, origin) {
-  const findings = [];
-  const add = (title, severity, description, remediation, evidence) =>
+export function baselineFindings(response: ResponseSnapshot, origin: string): FindingInput[] {
+  const findings: FindingInput[] = [];
+  const add = (
+    title: string,
+    severity: string,
+    description: string,
+    remediation: string,
+    evidence: string,
+  ) =>
     findings.push({
       title,
       severity,
