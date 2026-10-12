@@ -6,6 +6,25 @@ on:
 permissions:
   contents: read
 jobs:
+  evidence-sdk:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          repository: r4venrudy/rudy-evidence
+          ref: b2e8e361a89ddfa44142bdb49c6ea540c0e209f9
+          path: .sdk
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: cmake -S .sdk -B .sdk/build -DRE_BUILD_TESTS=OFF -DCMAKE_BUILD_TYPE=Release
+      - run: cmake --build .sdk/build --parallel 2
+      - run: npm ci
+      - name: Real native conversion and import boundary tests
+        run: RUDY_EVIDENCE_CLI="$PWD/.sdk/build/rudy-evidence" node --test tests/evidence-sdk.test.mjs
   validate:
     strategy:
       fail-fast: false

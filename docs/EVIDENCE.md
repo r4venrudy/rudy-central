@@ -16,6 +16,19 @@ Kernel captures use a separate **Kernel telemetry → Import capture** flow, a r
 
 Parsers accept documented subsets, not every schema variant or proprietary export. A product's SARIF adapter is usable only if that installed edition/version exports compatible SARIF, directly or through a trusted offline conversion. No vendor API is contacted.
 
+## Shared native SDK conversion
+
+The optional offline utility `scripts/evidence-convert.mjs` uses [Rudy Evidence](https://github.com/r4venrudy/rudy-evidence)'s native C++ core to normalize scanner reports or validate existing `rudy-evidence/v1` bundles. It produces Central's existing **Normalized JSON** import format, retaining scope, fingerprint, location, identifiers and evidence in the evidence field. It preserves the 4 MiB / 500-finding import bounds and rejects fields that would otherwise be truncated.
+
+Build/install the SDK, then set `RUDY_EVIDENCE_CLI` to its absolute trusted executable path:
+
+```sh
+node scripts/evidence-convert.mjs semgrep repo:example semgrep.json > central-findings.json
+node scripts/evidence-convert.mjs bundle imported:example findings.evidence.json > central-findings.json
+```
+
+Select **Normalized JSON** in the existing engagement import form. Other formats are the SDK's documented subsets; use `nuclei-lines` or `sentinel-lines` for NDJSON. Conversion happens locally with no shell and a 15-second deadline. The HTTP server does not launch the SDK or accept executable paths. Bundle integrity is unkeyed, not a signature; imported findings still require validation. Review output before sharing because redaction recognizes a limited pattern policy.
+
 ## Normalized finding
 
 ```json
