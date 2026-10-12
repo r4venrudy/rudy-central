@@ -14,7 +14,7 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           repository: r4venrudy/rudy-evidence
-          ref: b2e8e361a89ddfa44142bdb49c6ea540c0e209f9
+          ref: 1ed87e37aed0bafc7595e06514367d4c89136137
           path: .sdk
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
