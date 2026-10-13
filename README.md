@@ -123,6 +123,8 @@ Web tests use in-memory databases and injected transport fixtures; no Internet t
 
 ## Distribution
 
+The [private GitHub container package](https://github.com/users/r4venrudy/packages/container/package/rudy-central) ships the production browser UI and Node API for Linux amd64. It runs as an unprivileged user and preserves the default loopback binding. The separate Linux kernel agent and native Rudy Evidence CLI are not included. See [container deployment](docs/DEPLOYMENT.md#private-github-package) for installation, persistent storage and access requirements.
+
 The source is private and no project license has been selected. Distribution and licensing terms remain the owner's decision. Third-party software retains its own license.
 
 ---

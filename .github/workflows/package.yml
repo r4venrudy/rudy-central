@@ -1,0 +1,66 @@
+name: Build private package
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Dockerfile'
+      - '.dockerignore'
+      - '.github/workflows/package.yml'
+      - 'package*.json'
+      - 'index.html'
+      - 'tsconfig*.json'
+      - 'vite.config.js'
+      - 'src/**'
+      - 'server/**'
+      - 'sensors/**'
+      - 'scripts/evidence-convert.mjs'
+      - 'tests/**'
+      - 'examples/**'
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: package-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  package:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build production image and run application tests
+        run: docker build --pull --build-arg VCS_REF="$GITHUB_SHA" -t rudy-package:test .
+      - name: Test installed service in an isolated container
+        run: python3 tests/container_smoke.py rudy-package:test
+      - name: Publish only to the private package
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && github.repository == 'r4venrudy/rudy-central'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IMAGE: ghcr.io/r4venrudy/rudy-central
+        run: |
+          set -euo pipefail
+          test "$(gh api "repos/$GITHUB_REPOSITORY" --jq .private)" = true
+          status=$(curl -sS -o package-metadata.json -w '%{http_code}' \
+            -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' \
+            https://api.github.com/users/r4venrudy/packages/container/rudy-central)
+          case "$status" in
+            200) test "$(jq -r .visibility package-metadata.json)" = private ;;
+            404) ;; # First publication defaults to private.
+            *) echo "Cannot verify package visibility (HTTP $status)" >&2; exit 1 ;;
+          esac
+          trap 'docker logout ghcr.io >/dev/null 2>&1 || true' EXIT
+          printf '%s' "$GH_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+          docker tag rudy-package:test "$IMAGE:sha-$GITHUB_SHA"
+          docker tag rudy-package:test "$IMAGE:latest"
+          docker push "$IMAGE:sha-$GITHUB_SHA"
+          docker push "$IMAGE:latest"
+          test "$(gh api users/r4venrudy/packages/container/rudy-central --jq .visibility)" = private
+          docker pull "$IMAGE:sha-$GITHUB_SHA"
+          python3 tests/container_smoke.py "$IMAGE:sha-$GITHUB_SHA"
+          docker image inspect "$IMAGE:sha-$GITHUB_SHA" --format '{{json .RepoDigests}}' >> "$GITHUB_STEP_SUMMARY"

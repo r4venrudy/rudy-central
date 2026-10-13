@@ -20,7 +20,29 @@ RUDY_DATA_DIR=/var/lib/rudy-central
 
 Preserve the original public Host header. The origin and host must match `RUDY_PUBLIC_ORIGIN` exactly. The app does not enable Express `trust proxy`; login throttling behind a shared proxy is consequently conservative and shared. Do not accept arbitrary forwarded host/origin headers.
 
-For a container that must bind internally to `0.0.0.0`, set `RUDY_ALLOW_REMOTE=1`, a real HTTPS `RUDY_PUBLIC_ORIGIN`, and `RUDY_SECURE_COOKIE=1`. Place it on a private container network behind the HTTPS proxy. Do not publish its raw HTTP port to untrusted clients. The included Dockerfile is an example and was not executed on the Windows development host.
+For a container that must bind internally to `0.0.0.0`, set `RUDY_ALLOW_REMOTE=1`, a real HTTPS `RUDY_PUBLIC_ORIGIN`, and `RUDY_SECURE_COOKIE=1`. Place it on a private container network behind the HTTPS proxy. Do not publish its raw HTTP port to untrusted clients.
+
+## Private GitHub package
+
+The private Linux amd64 image contains the web UI and API. It does not contain or load the privileged kernel agent, and it does not bundle the native Rudy Evidence executable. The package workflow runs the application tests during the image build, then checks the compiled UI, API health, authorization and Host/Origin enforcement in an offline container with a read-only root filesystem. Publication is restricted to the original private repository and an absent or private package; it never changes package visibility.
+
+Sign in to `ghcr.io` using your own GitHub account with access to this private package. See [GitHub's container authentication instructions](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry#authenticating-to-the-container-registry). Never commit a token or put it directly in a command argument.
+
+On a Linux Docker host, use host networking to retain the default `127.0.0.1:4173` listener:
+
+```sh
+docker pull ghcr.io/r4venrudy/rudy-central:latest
+docker volume create rudy-central-data
+docker run --detach --name rudy-central \
+  --network host --read-only --cap-drop ALL \
+  --security-opt no-new-privileges --pids-limit 256 \
+  --mount type=volume,source=rudy-central-data,target=/app/.data \
+  ghcr.io/r4venrudy/rudy-central:latest
+```
+
+Open `http://127.0.0.1:4173` on that host, or use an SSH tunnel from Windows. This example is for Linux host networking; it is not a Docker Desktop port-mapping recipe. Keys and the database live in the named volume, writable by UID 1000. Retrieve the generated role key privately from `/app/.data/admin-key` using your container administration tools, and keep it out of logs, screenshots and shared terminals. The Linux snapshot module sees the container's environment; host-level collection still uses the separate documented agent.
+
+Tags are `latest` and `sha-<full-commit>`. Pin the package digest for an exact image. The container recipe uses Node 24 and lockfile-based dependency installation. To build the same recipe from source:
 
 ```sh
 docker build -t rudy-central:0.2.0 .
