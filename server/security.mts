@@ -291,11 +291,20 @@ export function baselineFindings(response: ResponseSnapshot, origin: string): Fi
       'Return X-Content-Type-Options: nosniff with correct MIME types.',
       `x-content-type-options: ${h['x-content-type-options'] || 'absent'}`,
     );
-  if (
-    !h['x-frame-options'] &&
-    !String(h['content-security-policy'] || '')
+  // ALLOW-FROM and other X-Frame-Options values are ignored by current browsers, and
+  // "frame-ancestors *" allows every embedder, so neither restricts framing
+  const xfo = String(h['x-frame-options'] || '')
+    .trim()
+    .toUpperCase();
+  const ancestors = [
+    ...String(h['content-security-policy'] || '')
       .toLowerCase()
-      .includes('frame-ancestors')
+      .matchAll(/(?:^|[;,])\s*frame-ancestors\s+([^;,]*)/g),
+  ];
+  if (
+    xfo !== 'DENY' &&
+    xfo !== 'SAMEORIGIN' &&
+    !ancestors.some((m) => !m[1].split(/\s+/).includes('*'))
   )
     add(
       'Framing policy is missing',

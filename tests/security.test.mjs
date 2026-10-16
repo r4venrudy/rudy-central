@@ -169,6 +169,21 @@ test('baseline preserves caveats and never records cookie values', () => {
     disabled.map((f) => f.title),
     ['Strict transport security is missing'],
   );
+  for (const headers of [
+    { 'x-frame-options': 'ALLOW-FROM https://partner.example' },
+    { 'content-security-policy': "default-src 'self'; frame-ancestors *" },
+  ])
+    assert.ok(
+      baselineFindings({ headers, tls: {} }, 'https://example.com').some(
+        (f) => f.title === 'Framing policy is missing',
+      ),
+    );
+  assert.ok(
+    !baselineFindings(
+      { headers: { 'x-frame-options': ' sameorigin ' }, tls: {} },
+      'https://example.com',
+    ).some((f) => f.title === 'Framing policy is missing'),
+  );
 });
 test('all supported evidence formats normalize severity and source', () => {
   const cases = [
