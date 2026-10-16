@@ -300,6 +300,36 @@ test('SARIF rules are found by index and in tool extensions', () => {
   assert.equal(row.severity, 'high');
   assert.equal(row.ruleId, 'js/sql-injection');
 });
+test('SARIF passes and suppressed results are skipped and the default level is warning', () => {
+  const rows = parseEvidence(
+    'sarif',
+    JSON.stringify({
+      version: '2.1.0',
+      runs: [
+        {
+          tool: { driver: { name: 'Scanner', rules: [{ id: 'R1' }] } },
+          results: [
+            { ruleId: 'R1', message: { text: 'no level' } },
+            { ruleId: 'R1', kind: 'pass', message: { text: 'passed' } },
+            { ruleId: 'R1', message: { text: 'waived' }, suppressions: [{ kind: 'external' }] },
+            {
+              ruleId: 'R1',
+              message: { text: 'rejected waiver' },
+              suppressions: [{ kind: 'external', status: 'rejected' }],
+            },
+          ],
+        },
+      ],
+    }),
+  );
+  assert.deepEqual(
+    rows.map((r) => [r.description, r.severity]),
+    [
+      ['no level', 'medium'],
+      ['rejected waiver', 'medium'],
+    ],
+  );
+});
 test('malformed and excessive artifacts are rejected', () => {
   assert.throws(() => parseEvidence('sarif', '{}'));
   assert.throws(() => parseEvidence('normalized', '{bad'));

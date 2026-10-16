@@ -66,6 +66,10 @@ export function parseEvidence(format, raw) {
         );
       };
       for (const r of run.results || []) {
+        // "pass", "notApplicable" and "informational" results are not findings, and an accepted
+        // suppression means someone already reviewed it
+        if (r.kind && r.kind !== 'fail' && r.kind !== 'review' && r.kind !== 'open') continue;
+        if ((r.suppressions || []).some((x) => !x.status || x.status === 'accepted')) continue;
         const rule = findRule(r);
         const score = Number(rule.properties?.['security-severity']);
         rows.push({
@@ -80,7 +84,8 @@ export function parseEvidence(format, raw) {
                   : score > 0
                     ? 'low'
                     : 'info'
-            : r.level,
+            : // SARIF's default level is "warning" when neither the result nor the rule sets one
+              r.level || rule.defaultConfiguration?.level || 'warning',
           description: r.message?.text || r.message?.markdown,
           remediation: rule.help?.text || 'Review the rule and validate the finding in context.',
           asset: r.locations?.[0]?.physicalLocation?.artifactLocation?.uri,
