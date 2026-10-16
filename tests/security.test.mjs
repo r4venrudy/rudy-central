@@ -154,6 +154,11 @@ test('baseline preserves caveats and never records cookie values', () => {
     'https://example.com',
   );
   assert.equal(safe.length, 0);
+  const none = baselineFindings(
+    { headers: { 'set-cookie': ['t=1; HttpOnly; SameSite=None'] }, tls: {} },
+    'https://example.com',
+  );
+  assert.ok(none.some((f) => f.title === 'Cookie t is rejected by browsers'));
   const disabled = baselineFindings(
     {
       headers: {

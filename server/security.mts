@@ -328,6 +328,18 @@ export function baselineFindings(response: ResponseSnapshot, origin: string): Fi
           `Review cookie purpose and configure ${flag} where applicable.`,
           `Cookie name: ${name.slice(0, 60)}; value redacted.`,
         );
+    // browsers refuse to store a SameSite=None cookie that is not also Secure
+    if (
+      /;\s*SameSite\s*=\s*None\s*(?:;|$)/i.test(cookie) &&
+      !/;\s*Secure\s*(?:[=;]|$)/i.test(cookie)
+    )
+      add(
+        `Cookie ${name.slice(0, 60)} is rejected by browsers`,
+        'low',
+        'The sampled Set-Cookie sets SameSite=None without Secure, so current browsers do not store it.',
+        'Add Secure, or choose Lax or Strict if cross-site delivery is not needed.',
+        `Cookie name: ${name.slice(0, 60)}; value redacted.`,
+      );
   }
   if (response.tls?.validTo && Date.parse(response.tls.validTo) - Date.now() < 30 * 86400000)
     add(
