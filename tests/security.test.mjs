@@ -386,6 +386,20 @@ test('reports escape untrusted evidence and enforce a no-script policy', () => {
   assert.ok(html.includes('&lt;script&gt;'));
   assert.ok(html.includes("default-src 'none'"));
 });
+test('reports list findings most severe first with counts', () => {
+  const html = reportHtml(
+    { name: 'n', client: 'c', objective: 'o' },
+    ['low', 'critical', 'medium', 'critical'].map((severity, i) => ({
+      title: `finding-${i}-${severity}`,
+      severity,
+    })),
+    [],
+    {},
+  );
+  const order = [...html.matchAll(/finding-\d-(\w+)/g)].map((m) => m[1]);
+  assert.deepEqual(order, ['critical', 'critical', 'medium', 'low']);
+  assert.ok(html.includes('2 critical · 1 medium · 1 low'));
+});
 test('audit chain detects changes and database transactions roll back', () => {
   const store = new Store(':memory:', 'audit-key');
   store.audit('tester', 'first', 'detail');
