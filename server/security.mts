@@ -283,7 +283,13 @@ export function baselineFindings(response: ResponseSnapshot, origin: string): Fi
       'Design and test a restrictive CSP for browser-facing content.',
       'content-security-policy: absent',
     );
-  if (String(h['x-content-type-options'] || '').toLowerCase() !== 'nosniff')
+  // Fetch spec: only the first value counts, and a repeated header arrives as "nosniff, nosniff"
+  if (
+    String(h['x-content-type-options'] || '')
+      .split(',')[0]
+      .trim()
+      .toLowerCase() !== 'nosniff'
+  )
     add(
       'Content-type sniffing is not disabled',
       'low',

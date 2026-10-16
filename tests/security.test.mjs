@@ -159,6 +159,16 @@ test('baseline preserves caveats and never records cookie values', () => {
     'https://example.com',
   );
   assert.ok(none.some((f) => f.title === 'Cookie t is rejected by browsers'));
+  const sniff = (value) =>
+    baselineFindings(
+      { headers: { 'x-content-type-options': value }, tls: {} },
+      'https://example.com',
+    )
+      .map((f) => f.evidence)
+      .some((e) => e.startsWith('x-content-type-options'));
+  assert.equal(sniff('nosniff, nosniff'), false);
+  assert.equal(sniff(' NoSniff'), false);
+  assert.equal(sniff('nosnif'), true);
   const disabled = baselineFindings(
     {
       headers: {
