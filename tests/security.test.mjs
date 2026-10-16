@@ -154,6 +154,21 @@ test('baseline preserves caveats and never records cookie values', () => {
     'https://example.com',
   );
   assert.equal(safe.length, 0);
+  const disabled = baselineFindings(
+    {
+      headers: {
+        'strict-transport-security': 'max-age=0',
+        'content-security-policy': "default-src 'self'; frame-ancestors 'none'",
+        'x-content-type-options': 'nosniff',
+      },
+      tls: {},
+    },
+    'https://example.com',
+  );
+  assert.deepEqual(
+    disabled.map((f) => f.title),
+    ['Strict transport security is missing'],
+  );
 });
 test('all supported evidence formats normalize severity and source', () => {
   const cases = [

@@ -262,13 +262,18 @@ export function baselineFindings(response: ResponseSnapshot, origin: string): Fi
       status: 'open',
     });
   const h = response.headers;
-  if (!h['strict-transport-security'])
+  const hsts = String(h['strict-transport-security'] || '');
+  // max-age=0 tells browsers to drop the policy, so it is reported like a missing header
+  const hstsAge = /(?:^|;)\s*max-age\s*=\s*"?(\d+)/i.exec(hsts);
+  if (!hstsAge || Number(hstsAge[1]) === 0)
     add(
       'Strict transport security is missing',
       'medium',
       'The sampled HTTPS response does not advertise HSTS. This is a configuration observation, not proof of an exploitable attack.',
       'After validating HTTPS coverage, configure an appropriate Strict-Transport-Security policy.',
-      'strict-transport-security: absent',
+      hsts
+        ? `strict-transport-security: ${hsts.slice(0, 120)} (disabled or invalid)`
+        : 'strict-transport-security: absent',
     );
   if (!h['content-security-policy'])
     add(
