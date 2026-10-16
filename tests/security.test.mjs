@@ -262,6 +262,44 @@ test('all supported evidence formats normalize severity and source', () => {
     assert.equal(JSON.stringify(findings).includes('token=secret'), false);
   }
 });
+test('SARIF rules are found by index and in tool extensions', () => {
+  const [row] = parseEvidence(
+    'sarif',
+    JSON.stringify({
+      version: '2.1.0',
+      runs: [
+        {
+          tool: {
+            driver: { name: 'CodeQL', rules: [] },
+            extensions: [
+              {
+                name: 'codeql/js-queries',
+                rules: [
+                  { id: 'js/a', shortDescription: { text: 'Other rule' } },
+                  {
+                    id: 'js/sql-injection',
+                    shortDescription: { text: 'Database query built from user input' },
+                    properties: { 'security-severity': '8.8' },
+                  },
+                ],
+              },
+            ],
+          },
+          results: [
+            {
+              ruleId: 'js/sql-injection',
+              rule: { id: 'js/sql-injection', index: 1, toolComponent: { index: 0 } },
+              message: { text: 'Query depends on a user-provided value.' },
+            },
+          ],
+        },
+      ],
+    }),
+  );
+  assert.equal(row.title, 'Database query built from user input');
+  assert.equal(row.severity, 'high');
+  assert.equal(row.ruleId, 'js/sql-injection');
+});
 test('malformed and excessive artifacts are rejected', () => {
   assert.throws(() => parseEvidence('sarif', '{}'));
   assert.throws(() => parseEvidence('normalized', '{bad'));

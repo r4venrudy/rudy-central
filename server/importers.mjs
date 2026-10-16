@@ -49,11 +49,27 @@ export function parseEvidence(format, raw) {
       throw new PolicyError('Expected SARIF 2.1.0 with runs.');
     for (const run of data.runs) {
       const rules = run.tool?.driver?.rules || [];
+      // CodeQL and other multi-pack tools keep their rules in tool.extensions[], and results
+      // may point at a rule by index instead of ruleId
+      const components = run.tool?.extensions || [];
+      const findRule = (r) => {
+        const ref = r.rule || {};
+        const list =
+          ref.toolComponent?.index !== undefined
+            ? components[ref.toolComponent.index]?.rules || []
+            : rules;
+        const index = ref.index ?? r.ruleIndex;
+        if (Number.isInteger(index) && list[index]) return list[index];
+        const id = r.ruleId ?? ref.id;
+        return (
+          [rules, ...components.map((c) => c.rules || [])].flat().find((x) => x.id === id) || {}
+        );
+      };
       for (const r of run.results || []) {
-        const rule = rules.find((x) => x.id === r.ruleId) || {};
+        const rule = findRule(r);
         const score = Number(rule.properties?.['security-severity']);
         rows.push({
-          title: rule.shortDescription?.text || r.ruleId || 'SARIF finding',
+          title: rule.shortDescription?.text || r.ruleId || rule.id || 'SARIF finding',
           severity: Number.isFinite(score)
             ? score >= 9
               ? 'critical'
@@ -70,7 +86,7 @@ export function parseEvidence(format, raw) {
           asset: r.locations?.[0]?.physicalLocation?.artifactLocation?.uri,
           evidence: r.locations,
           source: run.tool?.driver?.name || 'SARIF',
-          ruleId: r.ruleId,
+          ruleId: r.ruleId || rule.id,
         });
       }
     }
