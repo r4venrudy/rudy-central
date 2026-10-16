@@ -293,19 +293,23 @@ export function baselineFindings(response: ResponseSnapshot, origin: string): Fi
     );
   // ALLOW-FROM and other X-Frame-Options values are ignored by current browsers, and
   // "frame-ancestors *" allows every embedder, so neither restricts framing
-  const xfo = String(h['x-frame-options'] || '')
-    .trim()
-    .toUpperCase();
+  // Node joins repeated headers with ", "; per the HTML standard a single distinct value must be
+  // DENY/SAMEORIGIN, and conflicting values that include a known one block framing
+  const xfo = new Set(
+    String(h['x-frame-options'] || '')
+      .split(',')
+      .map((v) => v.trim().toUpperCase()),
+  );
+  const xfoBlocks =
+    xfo.size === 1
+      ? xfo.has('DENY') || xfo.has('SAMEORIGIN')
+      : ['DENY', 'SAMEORIGIN', 'ALLOWALL'].some((v) => xfo.has(v));
   const ancestors = [
     ...String(h['content-security-policy'] || '')
       .toLowerCase()
       .matchAll(/(?:^|[;,])\s*frame-ancestors\s+([^;,]*)/g),
   ];
-  if (
-    xfo !== 'DENY' &&
-    xfo !== 'SAMEORIGIN' &&
-    !ancestors.some((m) => !m[1].split(/\s+/).includes('*'))
-  )
+  if (!xfoBlocks && !ancestors.some((m) => !m[1].split(/\s+/).includes('*')))
     add(
       'Framing policy is missing',
       'low',

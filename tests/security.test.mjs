@@ -180,7 +180,7 @@ test('baseline preserves caveats and never records cookie values', () => {
     );
   assert.ok(
     !baselineFindings(
-      { headers: { 'x-frame-options': ' sameorigin ' }, tls: {} },
+      { headers: { 'x-frame-options': ' sameorigin, SAMEORIGIN ' }, tls: {} },
       'https://example.com',
     ).some((f) => f.title === 'Framing policy is missing'),
   );
