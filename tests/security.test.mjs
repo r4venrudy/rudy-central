@@ -330,6 +330,33 @@ test('SARIF passes and suppressed results are skipped and the default level is w
     ],
   );
 });
+test('Trivy secrets are imported without the matched value', () => {
+  const [row] = parseEvidence(
+    'trivy',
+    JSON.stringify({
+      Results: [
+        {
+          Target: 'config/.env',
+          Secrets: [
+            {
+              RuleID: 'aws-access-key-id',
+              Category: 'AWS',
+              Severity: 'CRITICAL',
+              Title: 'AWS Access Key ID',
+              StartLine: 3,
+              EndLine: 3,
+              Match: 'AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE',
+            },
+          ],
+        },
+      ],
+    }),
+  );
+  assert.equal(row.severity, 'critical');
+  assert.equal(row.asset, 'config/.env');
+  assert.match(row.description, /line 3/);
+  assert.equal(JSON.stringify(row).includes('AKIAIOSFODNN7EXAMPLE'), false);
+});
 test('malformed and excessive artifacts are rejected', () => {
   assert.throws(() => parseEvidence('sarif', '{}'));
   assert.throws(() => parseEvidence('normalized', '{bad'));

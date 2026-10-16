@@ -137,6 +137,23 @@ export function parseEvidence(format, raw) {
         source: 'Trivy',
         ruleId: v.VulnerabilityID,
       })),
+      // secret scanning: Match holds the secret itself, so only the rule and location are kept
+      ...(result.Secrets || []).map((v) => ({
+        title: v.Title || v.RuleID,
+        severity: v.Severity,
+        description: `${v.Title || v.RuleID} found in ${result.Target}${v.StartLine ? ` at line ${v.StartLine}` : ''}. The matched value is not imported.`,
+        asset: result.Target,
+        evidence: {
+          rule: v.RuleID,
+          category: v.Category,
+          startLine: v.StartLine,
+          endLine: v.EndLine,
+        },
+        remediation:
+          'Revoke and rotate the credential, then remove it from the file and its version history.',
+        source: 'Trivy',
+        ruleId: v.RuleID,
+      })),
       ...(result.Misconfigurations || [])
         .filter((v) => !v.Status || v.Status === 'FAIL')
         .map((v) => ({

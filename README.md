@@ -41,21 +41,21 @@ flowchart LR
 
 ## Working capabilities
 
-| Area              | Implemented                                                                                                                           |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| Workspace         | Operator and viewer sessions, local SQLite persistence, engagement filtering                                                          |
-| Authorization     | DNS TXT or HTTPS challenge, 30-minute pending challenge, signed 24-hour exact-origin permit, revalidation, revocation                 |
-| Native assessment | One HTTPS response; HSTS, CSP, content-type sniffing, framing, cookie flags, certificate expiry observations                          |
-| Network boundary  | Public DNS origins on port 443; every answer checked; DNS pinned to socket; no redirects; bounded bytes and time                      |
-| Evidence          | SARIF 2.1.0 subset, Semgrep JSON, Nuclei JSON/JSONL, Trivy JSON, Prowler OCSF JSON, normalized JSON, Rudy Linux snapshots             |
-| Finding workflow  | Severity filtering, detail/evidence inspection, owner, notes, remediation status                                                      |
-| Reports           | Downloadable HTML with print/PDF layout and JSON; evidence register and audit checkpoint                                              |
-| Controls          | Per-engagement control records with review, implementation, and gap status                                                            |
-| Audit             | HMAC-linked actions, integrity verification on startup, exported checkpoints                                                          |
-| Linux posture     | Offline, unprivileged collection of selected kernel hardening settings                                                                |
-| Kernel sensor     | Rust host agent; three embedded eBPF tracepoints; bounded ring buffer; UID/time/event limits inside the kernel; reader privilege drop |
-| Kernel evidence   | Host/boot/key-bound Ed25519 permits, sensor-signed captures, replay protection, registry, revocation, searchable event explorer       |
-| Tool library      | 88 catalog entries with documented native checks, export adapters, and reference-only tools; see the coverage guide                   |
+| Area              | Implemented                                                                                                                                                             |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Workspace         | Operator and viewer sessions, local SQLite persistence, engagement filtering                                                                                            |
+| Authorization     | DNS TXT or HTTPS challenge, 30-minute pending challenge, signed 24-hour exact-origin permit, revalidation, revocation                                                   |
+| Native assessment | One HTTPS response; HSTS, CSP, content-type sniffing, framing, cookie flags, certificate expiry observations                                                            |
+| Network boundary  | Public DNS origins on port 443; every answer checked; DNS pinned to socket; no redirects; bounded bytes and time                                                        |
+| Evidence          | SARIF 2.1.0 subset, Semgrep JSON, Nuclei JSON/JSONL, Trivy JSON (vulnerabilities, misconfigurations, secrets), Prowler OCSF JSON, normalized JSON, Rudy Linux snapshots |
+| Finding workflow  | Severity filtering, detail/evidence inspection, owner, notes, remediation status                                                                                        |
+| Reports           | Downloadable HTML with print/PDF layout and JSON; evidence register and audit checkpoint                                                                                |
+| Controls          | Per-engagement control records with review, implementation, and gap status                                                                                              |
+| Audit             | HMAC-linked actions, integrity verification on startup, exported checkpoints                                                                                            |
+| Linux posture     | Offline, unprivileged collection of selected kernel hardening settings                                                                                                  |
+| Kernel sensor     | Rust host agent; three embedded eBPF tracepoints; bounded ring buffer; UID/time/event limits inside the kernel; reader privilege drop                                   |
+| Kernel evidence   | Host/boot/key-bound Ed25519 permits, sensor-signed captures, replay protection, registry, revocation, searchable event explorer                                         |
+| Tool library      | 88 catalog entries with documented native checks, export adapters, and reference-only tools; see the coverage guide                                                     |
 
 ## Start locally
 
