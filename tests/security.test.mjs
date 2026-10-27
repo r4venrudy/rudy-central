@@ -200,6 +200,27 @@ test('baseline preserves caveats and never records cookie values', () => {
     ).some((f) => f.title === 'Framing policy is missing'),
   );
 });
+test('framing checks honor empty CSP lists and the first directive in each policy', () => {
+  for (const [csp, blocks] of [
+    ['frame-ancestors', true],
+    ['default-src https:; frame-ancestors;', true],
+    ["frame-ancestors *; frame-ancestors 'none'", false],
+    ["frame-ancestors 'none'; frame-ancestors *", true],
+    ["frame-ancestors *, frame-ancestors 'none'", true],
+    ['frame-ancestors\u00a0*', false],
+  ]) {
+    const findings = baselineFindings(
+      { headers: { 'content-security-policy': csp } },
+      'https://example.com',
+    );
+    assert.equal(
+      findings.some((f) => f.title === 'Framing policy is missing'),
+      !blocks,
+      csp,
+    );
+  }
+});
+
 test('all supported evidence formats normalize severity and source', () => {
   const cases = [
     [

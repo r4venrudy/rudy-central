@@ -310,12 +310,20 @@ export function baselineFindings(response: ResponseSnapshot, origin: string): Fi
     xfo.size === 1
       ? xfo.has('DENY') || xfo.has('SAMEORIGIN')
       : ['DENY', 'SAMEORIGIN', 'ALLOWALL'].some((v) => xfo.has(v));
-  const ancestors = [
-    ...String(h['content-security-policy'] || '')
-      .toLowerCase()
-      .matchAll(/(?:^|[;,])\s*frame-ancestors\s+([^;,]*)/g),
-  ];
-  if (!xfoBlocks && !ancestors.some((m) => !m[1].split(/\s+/).includes('*')))
+  const cspBlocksFraming = String(h['content-security-policy'] || '')
+    .split(',')
+    .some((policy) => {
+      const ancestors = policy
+        .split(';')
+        .map((directive) =>
+          directive.replace(/^[\t\n\f\r ]+|[\t\n\f\r ]+$/g, '').split(/[\t\n\f\r ]+/),
+        )
+        .find(([name]) => name.toLowerCase() === 'frame-ancestors');
+      // Empty source lists deny all ancestors. Duplicate directives use the first
+      // occurrence; separately enforced policies can each restrict framing.
+      return ancestors !== undefined && !ancestors.slice(1).includes('*');
+    });
+  if (!xfoBlocks && !cspBlocksFraming)
     add(
       'Framing policy is missing',
       'low',
