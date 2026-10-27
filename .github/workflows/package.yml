@@ -1,4 +1,4 @@
-name: Build private package
+name: Build and verify package
 on:
   push:
     branches: [main]
@@ -45,7 +45,8 @@ jobs:
           IMAGE: ghcr.io/r4venrudy/rudy-central
         run: |
           set -euo pipefail
-          test "$(gh api "repos/$GITHUB_REPOSITORY" --jq .private)" = true
+          # Source visibility is independent of package visibility. Keep the
+          # registry package private and verify that boundary before and after pushing.
           status=$(curl -sS -o package-metadata.json -w '%{http_code}' \
             -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' \
             https://api.github.com/users/r4venrudy/packages/container/rudy-central)

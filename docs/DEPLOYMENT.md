@@ -2,7 +2,7 @@
 
 ## Preferred first deployment: loopback + SSH
 
-Install Node 24.14 or later on a supported Linux distribution, clone the private repository using your own GitHub access, then `npm ci && npm run build && npm test`. Start with `npm start` under an unprivileged dedicated account. The browser/API never requires sudo. The separate Rust kernel agent is built and invoked according to [KERNEL.md](KERNEL.md); do not run the web service as root.
+Install Node 24.14 or later on a supported Linux distribution, clone the public repository, then `npm ci && npm run build && npm test`. Start with `npm start` under an unprivileged dedicated account. The browser/API never requires sudo. The separate Rust kernel agent is built and invoked according to [KERNEL.md](KERNEL.md); do not run the web service as root.
 
 Bind to `127.0.0.1:4173` and forward that port with SSH when accessing it from Windows. Avoid exposing an unauthenticated HTTP transport to the network.
 
@@ -24,7 +24,7 @@ For a container that must bind internally to `0.0.0.0`, set `RUDY_ALLOW_REMOTE=1
 
 ## Private GitHub package
 
-The private Linux amd64 image contains the web UI and API. It does not contain or load the privileged kernel agent, and it does not bundle the native Rudy Evidence executable. The package workflow runs the application tests during the image build, then checks the compiled UI, API health, authorization and Host/Origin enforcement in an offline container with a read-only root filesystem. Publication is restricted to the original private repository and an absent or private package; it never changes package visibility.
+The private Linux amd64 image contains the web UI and API. It does not contain or load the privileged kernel agent, and it does not bundle the native Rudy Evidence executable. The package workflow runs the application tests during the image build, then checks the compiled UI, API health, authorization and Host/Origin enforcement in an offline container with a read-only root filesystem. Publication is restricted to the original repository and an absent or private package; source visibility is independent of package visibility. The workflow verifies package privacy before and after publishing and never changes package visibility.
 
 Sign in to `ghcr.io` using your own GitHub account with access to this private package. See [GitHub's container authentication instructions](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry#authenticating-to-the-container-registry). Never commit a token or put it directly in a command argument.
 

@@ -11,7 +11,7 @@
 
 **Rudy Central is the flagship security workbench from [Rudy Systems](https://rudy.systems).** It brings authorized assessment, Linux kernel visibility, evidence review, and remediation into one local-first browser workspace.
 
-A Rust host agent and restricted-C eBPF sensor collect bounded Linux telemetry. A TypeScript control plane verifies scope and signed captures, persists evidence in SQLite, and serves a responsive React investigation interface. The source is private; this is an early platform release.
+A Rust host agent and restricted-C eBPF sensor collect bounded Linux telemetry. A TypeScript control plane verifies scope and signed captures, persists evidence in SQLite, and serves a responsive React investigation interface. The source is public; this is an early platform release.
 
 **Version 0.2.0** adds host enrollment, Ed25519 capture permits, signed kernel evidence, and a process-event explorer alongside the web baseline, finding triage, reports, controls, audit chain, and 88-tool registry. Catalog entries describe integration capabilities; they do not mean those products are bundled or executable. Commercial licenses are not included.
 
@@ -125,7 +125,7 @@ Web tests use in-memory databases and injected transport fixtures; no Internet t
 
 The [private GitHub container package](https://github.com/users/r4venrudy/packages/container/package/rudy-central) ships the production browser UI and Node API for Linux amd64. It runs as an unprivileged user and preserves the default loopback binding. The separate Linux kernel agent and native Rudy Evidence CLI are not included. See [container deployment](docs/DEPLOYMENT.md#private-github-package) for installation, persistent storage and access requirements.
 
-The source is private and no project license has been selected. Distribution and licensing terms remain the owner's decision. Third-party software retains its own license.
+The source is publicly readable and no project license has been selected. Distribution and licensing terms remain the owner's decision. Third-party software retains its own license.
 
 ---
 

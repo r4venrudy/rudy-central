@@ -8,7 +8,7 @@ RUN npm run check
 FROM node:24-bookworm-slim
 ARG VCS_REF=unknown
 LABEL org.opencontainers.image.source="https://github.com/r4venrudy/rudy-central" \
-      org.opencontainers.image.description="Private Rudy Central web interface and API. The Linux kernel agent is distributed separately." \
+      org.opencontainers.image.description="Rudy Central web interface and API. The Linux kernel agent is distributed separately." \
       org.opencontainers.image.revision="${VCS_REF}"
 ENV NODE_ENV=production PORT=4173 RUDY_DATA_DIR=/app/.data
 WORKDIR /app
